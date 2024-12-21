@@ -27,7 +27,7 @@ class Objekt:
     def __init__(self, sprite = None, pos = None, speed = None, width = None, base_speed = None):
         self.speed = speed or [0,0]
         self.pos = pos or [0, 0]
-        self.width = width or self.sprite.get_width()
+        self.width = width
         self.change_sprite(sprite)
         self.base_speed = base_speed or [0,0]
     def render(self):
@@ -77,7 +77,7 @@ class Värv(Objekt):
         self.sprite.set_alpha(self.alpha)
         self.pos = pos
         self.speed = [0,0]
-        self.kestvus = 10
+        self.kestvus = 20
     def render(self):
         global strokes, joonistab
         if joonistab == False:
@@ -102,6 +102,7 @@ joonistab = False
 strokes = []
 walk_change, brush_size,brush_size2,last_pos = 0,0,0,None
 to_render = []
+detection_positions = []
 while True:
 
     time +=1
@@ -122,12 +123,13 @@ while True:
     else:
         vastane.change_sprite('man_shoot.png')
     if joonistab:
+        mouse_pos = pygame.mouse.get_pos()
+        detection_positions.append(mouse_pos)
         brush_size = int(brush_size2)
         if brush_size < 7:
             brush_size2 += 0.75
         if alpha < 200:
             alpha += 15
-        mouse_pos = pygame.mouse.get_pos()
         if last_pos:
             vektor = [i - j for i, j in zip(mouse_pos, last_pos)]
             vektor_length = fv.get_vector_length(vektor)
@@ -140,11 +142,16 @@ while True:
         last_pos = mouse_pos
 
 
+    if detection_positions and not joonistab:
+        if fv.is_line(detection_positions):
+            to_render.append(Objekt(pos=detection_positions[-1]))
+        detection_positions.clear()
     fv.big_render(to_render)
     for stroke in strokes:
         stroke.render()
     if joonistab:
         pintsel.render()
+
     to_render = []
     #iga kord kui on sündmus
     for event in pygame.event.get():

@@ -56,4 +56,34 @@ def grayscale_with_alpha(input_image_path, output_image_path):
     # Save the result
     result_img.save(output_image_path)
     print(f"Image saved at {output_image_path}")
+aeg = 0
+def fadeout_render(objekt,sekundit):
+    global aeg
+    frames = sekundit*60
+    if aeg < frames:
+        aeg += 1
+        protsent = 1-aeg/frames
+        objekt.sprite = objekt.sprite.set_alpha(255*protsent)
+    else:
+        aeg = 0
+
+def is_line(positions):
+    match len(positions):
+        case 0,1: return False
+        case 2: return True
+        case _:
+            first_pos = positions[0]
+            last_pos = positions[-1]
+            kogu_muut = (last_pos[0]-first_pos[0], last_pos[1]-first_pos[1])
+            for pos in positions[1:-2]:
+                vektori_pikkus = get_vector_length(kogu_muut)
+                if vektori_pikkus > 100:
+                    nimetaja = abs(
+                        kogu_muut[1] * pos[0] - kogu_muut[0] * pos[1] + last_pos[0] * first_pos[1] - last_pos[1] *first_pos[0])
+                    kaugus_sirgest = nimetaja/vektori_pikkus
+                    if kaugus_sirgest > 30:
+                        return False
+                else:
+                    return False
+            return True
 
