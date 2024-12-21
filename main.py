@@ -31,7 +31,7 @@ class Objekt:
         self.change_sprite(sprite)
         self.base_speed = base_speed or [0,0]
     def render(self):
-        self.pos = [i + j for i, j in zip(self.pos, self.speed)]
+        self.pos = fv.get_vectors_sum(self.pos, self.speed)
         aken.blit(self.sprite, self.pos)
     def change_sprite(self, sprite = None):
         sprite = sprite or "placeholder.png"
@@ -103,6 +103,7 @@ strokes = []
 walk_change, brush_size,brush_size2,last_pos = 0,0,0,None
 to_render = []
 detection_positions = []
+render_list2 = []
 while True:
 
     time +=1
@@ -131,7 +132,7 @@ while True:
         if alpha < 200:
             alpha += 15
         if last_pos:
-            vektor = [i - j for i, j in zip(mouse_pos, last_pos)]
+            vektor = fv.get_vector(mouse_pos,last_pos)
             vektor_length = fv.get_vector_length(vektor)
             spaces = max(1, int(vektor_length / brush_size*3))
 
@@ -144,9 +145,13 @@ while True:
 
     if detection_positions and not joonistab:
         if fv.is_line(detection_positions):
-            to_render.append(Objekt(pos=detection_positions[-1]))
+            center = fv.get_vectors_sum(detection_positions[0],detection_positions[-1])
+            center = (center[0]/2,center[1]/2)
+            render_list2.append(Objekt(pos=center))
+
         detection_positions.clear()
     fv.big_render(to_render)
+    fv.big_render(render_list2)
     for stroke in strokes:
         stroke.render()
     if joonistab:
