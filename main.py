@@ -70,28 +70,23 @@ class Pintsel(Objekt):
 
 class Värv(Objekt):
     def __init__(self, pos, brush_size, alpha):
-        global brush_image
         self.alpha = alpha
-        self.sprite = pygame.transform.scale(brush_image,(brush_size,brush_size))
+        self.sprite = pygame.transform.scale(pygame.image.load("Sprites/draw_texture.png"),(brush_size,brush_size))
         self.sprite = pygame.transform.rotozoom(self.sprite,random.randint(0,359),1).convert_alpha()
         self.sprite.set_alpha(self.alpha)
         self.pos = pos
         self.speed = [0,0]
-        self.kestvus = 20
     def render(self):
-        global strokes, joonistab
-        if joonistab == False:
-            if self.kestvus == 0:
+        global strokes, joonistab, delete_number, brush_size
+        if joonistab == False and strokes[0].pos == self.pos:
+            a = math.floor(len(strokes)/5)
+            for i in range(a):
+                del strokes[i]
+            if a == 0:
                 del strokes[0]
-                self.kestvus = 5
-            else:
-                self.kestvus -= 1
         super().render()
 class Vastane(Objekt):
     pass
-#laeme erinevaid textureid valmis, väljaspool objekti optimiseerimise jaoks
-brush_image = pygame.image.load("Sprites/draw_texture.png")
-
 
 taust = Objekt('background.png', width=ekraan_laius)
 mikro = Objekt("mikro_left.png", [100,300], width=100, base_speed=8)
@@ -104,6 +99,7 @@ walk_change, brush_size,brush_size2,last_pos = 0,0,0,None
 to_render = []
 detection_positions = []
 render_list2 = []
+maxBrushSize = 10
 while True:
 
     time +=1
@@ -127,8 +123,10 @@ while True:
         mouse_pos = pygame.mouse.get_pos()
         detection_positions.append(mouse_pos)
         brush_size = int(brush_size2)
-        if brush_size < 7:
+        if brush_size < maxBrushSize:
             brush_size2 += 0.75
+        else:
+            brush_size = maxBrushSize
         if alpha < 200:
             alpha += 15
         if last_pos:
@@ -140,6 +138,7 @@ while True:
                 factor = space / spaces
                 new_pos = [lp + v * factor for lp, v in zip(last_pos, vektor)]
                 strokes.append(Värv(new_pos, brush_size, alpha))
+
         last_pos = mouse_pos
 
 
@@ -148,7 +147,6 @@ while True:
             center = fv.get_vectors_sum(detection_positions[0],detection_positions[-1])
             center = (center[0]/2,center[1]/2)
             render_list2.append(Objekt(pos=center))
-
         detection_positions.clear()
     fv.big_render(to_render)
     fv.big_render(render_list2)
@@ -193,8 +191,9 @@ while True:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == pygame.BUTTON_LEFT:
                 joonistab = True
-                brush_size2, alpha, last_pos = 1,0, None
+                brush_size2, alpha, last_pos = 2,0, None
                 slow_speed = 3.75
+                strokes.clear()
                 fv.set_nearest_offscreen_pos(pygame.mouse.get_pos(),pintsel,ekraan_suurus)
 
         #hiire nupp üles
