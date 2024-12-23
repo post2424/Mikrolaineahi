@@ -127,6 +127,7 @@ class Värv(Objekt):
         self.sprite.set_alpha(self.alpha)
     def render(self):
         global strokes, joonistab
+
         if joonistab == False and strokes[0].pos == self.pos:
             a = math.floor(len(strokes)/5)
             for i in range(a):

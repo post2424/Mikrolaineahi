@@ -5,6 +5,7 @@ up = [pygame.K_UP, pygame.K_w]
 down = [pygame.K_DOWN, pygame.K_s]
 left = [pygame.K_LEFT, pygame.K_a]
 right = [pygame.K_RIGHT,pygame.K_d]
+
 def get_vector(point1,point2):
     return [i - j for i, j in zip(point1, point2)]
 def get_vectors_sum(vektor1, vektor2):
@@ -29,35 +30,25 @@ def set_nearest_offscreen_pos(pos,objekt, ekraan):
         case 3:
             objekt.pos = (x, ekraan_pikkus + objekt.sprite.get_height())
 
-from PIL import Image
 
-from PIL import Image
+
 
 
 def grayscale_with_alpha(input_image_path, output_image_path):
-    # Open the image and ensure it's in RGBA mode
+    from PIL import Image
     img = Image.open(input_image_path).convert("RGBA")
-
-    # Convert to grayscale
     grayscale_img = img.convert("L")
-
-    # Get the grayscale pixel data
     grayscale_data = grayscale_img.getdata()
-
-    # Modify the alpha channel based on the grayscale intensity
     new_data = []
     for i, pixel in enumerate(img.getdata()):
-        r, g, b, a = pixel  # Original RGBA values
-        alpha = 255 - grayscale_data[i]  # Higher grayscale value = lower alpha
+        r, g, b, a = pixel
+        alpha = 255 - grayscale_data[i]
         new_data.append((r, g, b, alpha))
-
-    # Create a new image with updated alpha
     result_img = Image.new("RGBA", img.size)
     result_img.putdata(new_data)
-
-    # Save the result
     result_img.save(output_image_path)
     print(f"Image saved at {output_image_path}")
+
 aeg = 0
 def fadeout_render(objekt,sekundit):
     global aeg
