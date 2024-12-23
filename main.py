@@ -83,6 +83,33 @@ class Character(Objekt):
         super().render()
 
 class Pintsel(Objekt):
+    def __init__(self, sprite, width, brush_size=None):
+        super().__init__(sprite, pos=[0, 0], width=width)
+        self.brush_size = brush_size or 20 # siin ma panin defaultiks 20, jummala umbes lih
+        self.brush_textures = []
+        self.previous_brush_size = 0
+        self.MAX_ITERATIONS = 125 # spaces ei saa olla suurem kui see
+
+        self.load_brush_textures()
+
+    # Siin saaks tglt optimeerida veel paremini dictionaryga: brush_textures{brush_size: [preloaded brushes], brush_size:[preloaded brushes, jne]}
+    # siis ta cahce-iks koik tehtud texturid tulevikuks ara, juhul kui brush size jalle tagasi muudetakse
+    def load_brush_textures(self):
+        """ Preload brush textures with different rotations """
+        if self.brush_size == self.previous_brush_size:
+            return self.brush_textures
+        else:
+            self.brush_textures = []
+            for angle in range(0, 360, 10):
+                texture = pygame.image.load("Sprites/draw_texture.png").convert_alpha()
+                scaled_texture = pygame.transform.scale(texture, (self.brush_size, self.brush_size))
+                rotated_texture = pygame.transform.rotate(scaled_texture, angle)
+                self.brush_textures.append(rotated_texture)
+
+    def get_random_brush_texture(self):
+        """ Return a random brush texture from the preloaded list """
+        return random.choice(self.brush_textures)
+
     def render(self):
         global slow_speed
         mouse_x = self.mouse_pos[0]
@@ -97,6 +124,7 @@ class Pintsel(Objekt):
             self.speed = [0,0]
             self.pos = (mouse_x, mouse_y)
         super().render()
+
     def joonista(self,MAX_BRUSH_SIZE,BRUSH_CHANGE_RATE,MAX_ALPHA,ALPHA_CHANGE_RATE):
         self.mouse_pos = pygame.mouse.get_pos()
         global last_pos, strokes, detection_positions, brush_size, alpha
@@ -108,8 +136,11 @@ class Pintsel(Objekt):
         if last_pos:
             vektor = fv.get_vector(self.mouse_pos, last_pos)
             vektor_length = fv.get_vector_length(vektor)
-            spaces = max(1, int(vektor_length / brush_size * min(brush_size, 3)))
-            for space in range(1, spaces + 1):
+
+            #Not gonna lie, suht low effort viis selle probleemi lahendamiseks, aga outcome enamvähem, kuskil sügavamal probleem, pole nii tuttav pygame-iga, et prg parandada
+            spaces = min(max(1, int(vektor_length / brush_size * min(brush_size, 3))), self.MAX_ITERATIONS)
+            print(spaces)
+            for space in range(1, spaces + 1, 2):
                 factor = space / spaces
                 new_pos = [lp + v * factor for lp, v in zip(last_pos, vektor)]
                 strokes.append(Värv(new_pos))
@@ -122,9 +153,9 @@ class Värv(Objekt):
     def __init__(self, pos):
         super().__init__(pos=pos)
         self.alpha = alpha
-        self.sprite = pygame.transform.scale(pygame.image.load("Sprites/draw_texture.png"),(brush_size,brush_size))
-        self.sprite = pygame.transform.rotozoom(self.sprite,random.randint(0,359),1).convert_alpha()
+        self.sprite = pintsel.get_random_brush_texture()
         self.sprite.set_alpha(self.alpha)
+
     def render(self):
         global strokes, joonistab
 
@@ -135,6 +166,7 @@ class Värv(Objekt):
             if a == 0:
                 del strokes[0]
         aken.blit(self.sprite, self.pos)
+
 class Vastane(Character):
     pass
 
