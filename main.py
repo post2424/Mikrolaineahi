@@ -40,8 +40,6 @@ class Objekt:
             heightdivwidth = (self.sprite.get_height() / self.sprite.get_width())
             self.sprite = pygame.transform.scale(self.sprite,(self.width, heightdivwidth*self.width))
 
-# pmst kui  callid objekti siis objekt(sprite filei nimi, pos = (X,Y) /
-#kiirus, kui suureks teha sprite), ainuke nõutud on sprite file
 
 # kui spritei nime lõpus on f siis ta flippib spritei
 class Character(Objekt):
@@ -88,8 +86,7 @@ class Pintsel(Objekt):
         self.brush_size = brush_size or 20 # siin ma panin defaultiks 20, jummala umbes lih
         self.brush_textures = []
         self.previous_brush_size = 0
-        self.MAX_ITERATIONS = 125 # spaces ei saa olla suurem kui see
-
+        self.MAX_ITERATIONS = float('inf') # spaces ei saa olla suurem kui see
         self.load_brush_textures()
 
     # Siin saaks tglt optimeerida veel paremini dictionaryga: brush_textures{brush_size: [preloaded brushes], brush_size:[preloaded brushes, jne]}
@@ -101,9 +98,10 @@ class Pintsel(Objekt):
         else:
             self.brush_textures = []
             for angle in range(0, 360, 10):
-                texture = pygame.image.load("Sprites/draw_texture.png").convert_alpha()
+                texture = pygame.image.load("Sprites/draw_texture.png")
                 scaled_texture = pygame.transform.scale(texture, (self.brush_size, self.brush_size))
                 rotated_texture = pygame.transform.rotate(scaled_texture, angle)
+                rotated_texture.convert_alpha()
                 self.brush_textures.append(rotated_texture)
 
     def get_random_brush_texture(self):
@@ -136,29 +134,21 @@ class Pintsel(Objekt):
         if last_pos:
             vektor = fv.get_vector(self.mouse_pos, last_pos)
             vektor_length = fv.get_vector_length(vektor)
-
-            #Not gonna lie, suht low effort viis selle probleemi lahendamiseks, aga outcome enamvähem, kuskil sügavamal probleem, pole nii tuttav pygame-iga, et prg parandada
             spaces = min(max(1, int(vektor_length / brush_size * min(brush_size, 3))), self.MAX_ITERATIONS)
-            print(spaces)
-            for space in range(1, spaces + 1, 2):
+            for space in range(spaces):
                 factor = space / spaces
                 new_pos = [lp + v * factor for lp, v in zip(last_pos, vektor)]
-                strokes.append(Värv(new_pos))
+                strokes.append(Värv(new_pos,alpha))
         last_pos = self.mouse_pos
-#self.speed toimib nii et võtab asukoha kuhu saada tahab ja asukoha, kus on ja leieb nende vektori
-#,suunaga sinna poole kuhu saada tahetakse ja jagab selle jump slow-iga
-
 
 class Värv(Objekt):
-    def __init__(self, pos):
+    def __init__(self, pos,alpha1):
         super().__init__(pos=pos)
-        self.alpha = alpha
+        self.alpha = alpha1
         self.sprite = pintsel.get_random_brush_texture()
         self.sprite.set_alpha(self.alpha)
-
     def render(self):
         global strokes, joonistab
-
         if joonistab == False and strokes[0].pos == self.pos:
             a = math.floor(len(strokes)/5)
             for i in range(a):
@@ -173,7 +163,7 @@ class Vastane(Character):
 taust = Objekt('background.png', width=ekraan_laius)
 mikro = Character("mikro_left.png", [100,300], width=100, base_speed=8)
 mikro.set_sprites('mikro_away.png','mikro_forward.png','mikro_left.png','mikro_right.png')
-pintsel = Pintsel("pencil.png", width=200 )
+pintsel = Pintsel("pencil.png", width=200, brush_size=5 )
 vastane = Vastane("man_shoot.png",[100,300], speed=(2.5,0), width=100, base_speed=8)
 vastane.set_sprites(['man_away.png','man_away.pngf'],['man_forward.png','man_forward.pngf'],['man_side.png','man_side2.png'],['man_side.pngf','man_side2.pngf'],10, 'man_shoot.png')
 
