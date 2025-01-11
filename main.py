@@ -81,28 +81,19 @@ class Character(Objekt):
         super().render()
 
 class Pintsel(Objekt):
-    def __init__(self, sprite, width, brush_size=None):
+    def __init__(self, sprite, width):
         super().__init__(sprite, pos=[0, 0], width=width)
-        self.brush_size = brush_size or 20 # siin ma panin defaultiks 20, jummala umbes lih
         self.brush_textures = []
-        self.previous_brush_size = 0
-        self.MAX_ITERATIONS = float('inf') # spaces ei saa olla suurem kui see
         self.load_brush_textures()
 
     # Siin saaks tglt optimeerida veel paremini dictionaryga: brush_textures{brush_size: [preloaded brushes], brush_size:[preloaded brushes, jne]}
     # siis ta cahce-iks koik tehtud texturid tulevikuks ara, juhul kui brush size jalle tagasi muudetakse
     def load_brush_textures(self):
-        """ Preload brush textures with different rotations """
-        if self.brush_size == self.previous_brush_size:
-            return self.brush_textures
-        else:
-            self.brush_textures = []
-            for angle in range(0, 360, 10):
-                texture = pygame.image.load("Sprites/draw_texture.png")
-                scaled_texture = pygame.transform.scale(texture, (self.brush_size, self.brush_size))
-                rotated_texture = pygame.transform.rotate(scaled_texture, angle)
-                rotated_texture.convert_alpha()
-                self.brush_textures.append(rotated_texture)
+        for angle in range(0, 360, 10):
+            texture = pygame.image.load("Sprites/draw_texture.png")
+            rotated_texture = pygame.transform.rotate(texture, angle)
+            rotated_texture.convert_alpha()
+            self.brush_textures.append(rotated_texture)
 
     def get_random_brush_texture(self):
         """ Return a random brush texture from the preloaded list """
@@ -134,18 +125,20 @@ class Pintsel(Objekt):
         if last_pos:
             vektor = fv.get_vector(self.mouse_pos, last_pos)
             vektor_length = fv.get_vector_length(vektor)
-            spaces = min(max(1, int(vektor_length / brush_size * min(brush_size, 3))), self.MAX_ITERATIONS)
+            spaces = max(1, int(vektor_length / brush_size * min(brush_size, 3)))
             for space in range(spaces):
                 factor = space / spaces
                 new_pos = [lp + v * factor for lp, v in zip(last_pos, vektor)]
-                strokes.append(Värv(new_pos,alpha))
+                strokes.append(Värv(new_pos,alpha,brush_size))
         last_pos = self.mouse_pos
 
 class Värv(Objekt):
-    def __init__(self, pos,alpha1):
+    def __init__(self, pos,alpha, brush_size):
         super().__init__(pos=pos)
-        self.alpha = alpha1
+        self.alpha = alpha
+        self.brush_size = brush_size
         self.sprite = pintsel.get_random_brush_texture()
+        self.sprite = pygame.transform.scale(self.sprite, (self.brush_size, self.brush_size))
         self.sprite.set_alpha(self.alpha)
     def render(self):
         global strokes, joonistab
@@ -163,7 +156,7 @@ class Vastane(Character):
 taust = Objekt('background.png', width=ekraan_laius)
 mikro = Character("mikro_left.png", [100,300], width=100, base_speed=8)
 mikro.set_sprites('mikro_away.png','mikro_forward.png','mikro_left.png','mikro_right.png')
-pintsel = Pintsel("pencil.png", width=200, brush_size=5 )
+pintsel = Pintsel("pencil.png", width=200)
 vastane = Vastane("man_shoot.png",[100,300], speed=(2.5,0), width=100, base_speed=8)
 vastane.set_sprites(['man_away.png','man_away.pngf'],['man_forward.png','man_forward.pngf'],['man_side.png','man_side2.png'],['man_side.pngf','man_side2.pngf'],10, 'man_shoot.png')
 
@@ -188,7 +181,7 @@ while True:
     to_render.append(mikro)
 
     if joonistab:
-        pintsel.joonista(8,0.75,200,7)
+        pintsel.joonista(10,0.75,200,7)
     else:
         if detection_positions:
             if fv.is_line(detection_positions):
