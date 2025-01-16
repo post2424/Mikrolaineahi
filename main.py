@@ -129,30 +129,21 @@ class Pintsel(Objekt):
             for space in range(spaces):
                 factor = space / spaces
                 new_pos = [lp + v * factor for lp, v in zip(last_pos, vektor)]
-                strokes.append(Värv(new_pos,alpha,brush_size))
+                strokes.add(Värv(new_pos,alpha,brush_size))
         last_pos = self.mouse_pos
 
-class Värv(Objekt):
+class Värv(pygame.sprite.Sprite):
     def __init__(self, pos,alpha, brush_size):
-        super().__init__(pos=pos)
-        self.alpha = alpha
+        pygame.sprite.Sprite.__init__(self)
+        self.rect = pos
         self.brush_size = brush_size
-        self.sprite = pintsel.get_random_brush_texture()
-        self.sprite = pygame.transform.scale(self.sprite, (self.brush_size, self.brush_size))
-        self.sprite.set_alpha(self.alpha)
-    def render(self):
-        global strokes, joonistab
-        if joonistab == False and strokes[0].pos == self.pos:
-            a = math.floor(len(strokes)/5)
-            for i in range(a):
-                del strokes[i]
-            if a == 0:
-                del strokes[0]
-        aken.blit(self.sprite, self.pos)
+        self.alpha = alpha
+        self.image = pintsel.get_random_brush_texture()
+        self.image = pygame.transform.scale(self.image,(brush_size,brush_size))
+        self.image.set_alpha(self.alpha)
 
 class Vastane(Character):
     pass
-
 taust = Objekt('background.png', width=ekraan_laius)
 mikro = Character("mikro_left.png", [100,300], width=100, base_speed=8)
 mikro.set_sprites('mikro_away.png','mikro_forward.png','mikro_left.png','mikro_right.png')
@@ -163,7 +154,7 @@ vastane.set_sprites(['man_away.png','man_away.pngf'],['man_forward.png','man_for
 
 joonistab = False
 to_render = []
-strokes = []
+strokes = pygame.sprite.Group()
 detection_positions = []
 render_list2 = []
 BRUSH_START_SIZE = 2
@@ -179,10 +170,12 @@ while True:
     taust.render()
     to_render.append(vastane)
     to_render.append(mikro)
-
     if joonistab:
         pintsel.joonista(10,0.75,200,7)
     else:
+        a = max(1,math.floor(len(strokes)/7))
+        sprites_to_remove = list(strokes)[0:a]
+        strokes.remove(*sprites_to_remove)
         if detection_positions:
             if fv.is_line(detection_positions):
                 center = fv.get_vectors_sum(detection_positions[0],detection_positions[-1])
@@ -192,8 +185,8 @@ while True:
 
     fv.big_render(to_render)
     fv.big_render(render_list2)
-    for stroke in strokes:
-        stroke.render()
+    strokes.draw(aken)
+
     if joonistab:
         pintsel.render()
 
@@ -224,13 +217,14 @@ while True:
                 mikro.speed[0] += mikro.base_speed
             if event.key in fv.right:
                 mikro.speed[0] -= mikro.base_speed
+
         #hiire nupp alla
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == pygame.BUTTON_LEFT:
                 joonistab = True
                 brush_size, alpha, last_pos = BRUSH_START_SIZE,BRUSH_START_ALPHA, None
                 slow_speed = 3.75
-                strokes = []
+                strokes.empty()
                 fv.set_nearest_offscreen_pos(pygame.mouse.get_pos(),pintsel,ekraan_suurus)
 
         #hiire nupp üles
