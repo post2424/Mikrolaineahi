@@ -18,27 +18,28 @@ time = 0
 # Mõned värvid
 must = (0, 0, 0)
 canvas = pygame.Surface(ekraan_suurus, pygame.SRCALPHA)
-class Objekt:
-    def __init__(self, sprite = None, pos = None, speed = None, width = None, base_speed = None):
-        self.speed = speed or [0,0]
-        self.pos = pos or [0, 0]
+class Objekt(pygame.sprite.Sprite):
+    def __init__(self, sprite = None, pos = None, width = None, base_speed = None):
+        super().__init__()
+        self.speed = [0,0]
+        self.rect = pos or [0, 0]
         self.width = width
         self.change_sprite(sprite)
         self.base_speed = base_speed or [0,0]
-    def render(self):
-        self.pos = fv.get_vectors_sum(self.pos, self.speed)
-        aken.blit(self.sprite, self.pos)
+    def update(self):
+        self.rect = fv.get_vectors_sum(self.rect, self.speed)
+
     def change_sprite(self, sprite = None):
-        self.sprite = sprite or "placeholder.png"
-        if self.sprite[-1].lower() == 'f':
-            self.sprite = pygame.image.load("Sprites/" + self.sprite[0:-1])
-            self.sprite = pygame.transform.flip(self.sprite, True, False)
+        self.image = sprite or "placeholder.png"
+        if self.image[-1].lower() == 'f':
+            self.image = pygame.image.load("Sprites/" + self.image[0:-1])
+            self.image = pygame.transform.flip(self.image, True, False)
         else:
-            self.sprite = pygame.image.load("Sprites/"+self.sprite)
+            self.image = pygame.image.load("Sprites/" + self.image)
 
         if self.width is not None:
-            heightdivwidth = (self.sprite.get_height() / self.sprite.get_width())
-            self.sprite = pygame.transform.scale(self.sprite,(self.width, heightdivwidth*self.width))
+            heightdivwidth = (self.image.get_height() / self.image.get_width())
+            self.image = pygame.transform.scale(self.image, (self.width, heightdivwidth * self.width))
 
 
 # kui spritei nime lõpus on f siis ta flippib spritei
@@ -50,35 +51,33 @@ class Character(Objekt):
         self.right_sprites = right_sprites
         self.frames_per_sprite = frames_per_sprite
         self.still_sprites = still_sprites
-        self.sprite_num = 0
-        self.walk_change = 0
-    def play_animation(self,sprites):
-        if isinstance(sprites,str):
-            self.change_sprite(sprites)
-        elif not self.frames_per_sprite:
-            self.change_sprite(sprites[0])
-        else:
-            self.walk_change += 1
-            num_sprites = len(sprites)
-            if self.walk_change == self.frames_per_sprite:
-                self.sprite_num = (self.sprite_num + 1) % num_sprites  # Cycle through the sprites
-                self.walk_change = 0
-
-            self.change_sprite(sprites[self.sprite_num])
-    def sprite_in_direction(self):
+        self.current_animation = self.still_sprites
+        self.current_sprite = 0
+        self.hold_frame = 11.5
+        self.change_speed(0,0)
+    def change_speed(self,x=0,y=0):
+        self.speed = fv.get_vectors_sum(self.speed,(x,y))
         if self.speed[0] < 0: #vasakule
-            self.play_animation(self.left_sprites)
+            self.current_animation = self.left_sprites
         elif self.speed[0] > 0:  # paremale
-            self.play_animation(self.right_sprites)
+            self.current_animation = self.right_sprites
         elif self.speed[1]  < 0:#üles
-            self.play_animation(self.up_sprites)
+            self.current_animation = self.up_sprites
         elif self.speed[1] > 0:  # alla
-            self.play_animation(self.down_sprites)
+            self.current_animation = self.down_sprites
         elif self.still_sprites: #paigal
-            self.play_animation(self.still_sprites)
-    def render(self):
-        self.sprite_in_direction()
-        super().render()
+            self.current_animation = self.still_sprites
+        if isinstance(self.current_animation, str):
+             self.animating = False
+             self.change_sprite(self.current_animation)
+        else: self.animating = True
+
+    def play_animation(self):
+        if self.animating:
+            self.current_sprite += 1 / self.hold_frame
+            if int(self.current_sprite) >= len(self.current_animation):
+                self.current_sprite = 0
+            self.change_sprite(self.current_animation[int(self.current_sprite)])
 
 class Pintsel(Objekt):
     def __init__(self, sprite, width):
@@ -99,20 +98,19 @@ class Pintsel(Objekt):
         """ Return a random brush texture from the preloaded list """
         return random.choice(self.brush_textures)
 
-    def render(self):
+    def update(self):
         global slow_speed
         mouse_x = self.mouse_pos[0]
-        mouse_y = self.mouse_pos[1] -self.sprite.get_height() # selleks, et pintsli vasak alumine äär oleks kursori peal
-        speed_x = mouse_x - self.pos[0]
-        speed_y = mouse_y - self.pos[1]
-
+        mouse_y = self.mouse_pos[1] -self.image.get_height() # selleks, et pintsli vasak alumine äär oleks kursori peal
+        speed_x = mouse_x - self.rect[0]
+        speed_y = mouse_y - self.rect[1]
         if slow_speed > 1.2:
             slow_speed -= 0.2
             self.speed = (speed_x/slow_speed, speed_y/slow_speed)
         else:
             self.speed = [0,0]
-            self.pos = (mouse_x, mouse_y)
-        super().render()
+            self.rect = (mouse_x, mouse_y)
+        super().update()
 
     def joonista(self,MAX_BRUSH_SIZE,BRUSH_CHANGE_RATE,MAX_ALPHA,ALPHA_CHANGE_RATE):
         self.mouse_pos = pygame.mouse.get_pos()
@@ -148,31 +146,35 @@ taust = Objekt('background.png', width=ekraan_laius)
 mikro = Character("mikro_left.png", [100,300], width=100, base_speed=8)
 mikro.set_sprites('mikro_away.png','mikro_forward.png','mikro_left.png','mikro_right.png')
 pintsel = Pintsel("pencil.png", width=200)
-vastane = Vastane("man_shoot.png",[100,300], speed=(2.5,0), width=100, base_speed=8)
+vastane = Vastane(pos=[500,300], width=100, base_speed=4)
 vastane.set_sprites(['man_away.png','man_away.pngf'],['man_forward.png','man_forward.pngf'],['man_side.png','man_side2.png'],['man_side.pngf','man_side2.pngf'],10, 'man_shoot.png')
 
 
 joonistab = False
-to_render = []
+to_render = pygame.sprite.LayeredUpdates()
 strokes = pygame.sprite.Group()
 detection_positions = []
-render_list2 = []
 BRUSH_START_SIZE = 2
 BRUSH_START_ALPHA = 10
 
-
+to_render.add(taust)
+to_render.add(vastane)
+to_render.add(mikro)
 
 while True:
 
     time +=1
-    if time == 1000:
-        vastane.speed = [0,0]
-    taust.render()
-    to_render.append(vastane)
-    to_render.append(mikro)
+    if time == 100:
+        vastane.change_speed(y=vastane.base_speed)
+    elif time == 150:
+        vastane.change_speed(y=-vastane.base_speed)
+
+
     if joonistab:
+        to_render.add(pintsel)
         pintsel.joonista(10,0.75,200,7)
     else:
+        to_render.remove(pintsel)
         a = max(1,math.floor(len(strokes)/7))
         sprites_to_remove = list(strokes)[0:a]
         strokes.remove(*sprites_to_remove)
@@ -180,17 +182,14 @@ while True:
             if fv.is_line(detection_positions):
                 center = fv.get_vectors_sum(detection_positions[0],detection_positions[-1])
                 center = (center[0]/2,center[1]/2)
-                render_list2.append(Objekt(pos=center))
+                to_render.add(Objekt(pos=center))
             detection_positions.clear()
 
-    fv.big_render(to_render)
-    fv.big_render(render_list2)
+    vastane.play_animation()
+    to_render.update()
+    to_render.draw(aken)
     strokes.draw(aken)
 
-    if joonistab:
-        pintsel.render()
-
-    to_render = []
     #iga kord kui on sündmus
     for event in pygame.event.get():
         #quit event
@@ -200,23 +199,23 @@ while True:
         #klaviatuuri nupp alla
         elif event.type == pygame.KEYDOWN:
             if event.key in fv.up:
-                mikro.speed[1] -= mikro.base_speed
+                mikro.change_speed(y=-mikro.base_speed)
             if event.key in fv.down:
-                mikro.speed[1] += mikro.base_speed
+                mikro.change_speed(y=mikro.base_speed)
             if event.key in fv.left:
-                mikro.speed[0] -= mikro.base_speed
+                mikro.change_speed(-mikro.base_speed)
             if event.key in fv.right:
-                mikro.speed[0] += mikro.base_speed
+                mikro.change_speed(mikro.base_speed)
         #klaviatuuri nupp üles
         elif event.type == pygame.KEYUP:
             if event.key in fv.up:
-                mikro.speed[1] += mikro.base_speed
+                mikro.change_speed(y=mikro.base_speed)
             if event.key in fv.down:
-                mikro.speed[1] -= mikro.base_speed
+                mikro.change_speed(y=-mikro.base_speed)
             if event.key in fv.left:
-                mikro.speed[0] += mikro.base_speed
+                mikro.change_speed(mikro.base_speed)
             if event.key in fv.right:
-                mikro.speed[0] -= mikro.base_speed
+                mikro.change_speed(-mikro.base_speed)
 
         #hiire nupp alla
         elif event.type == pygame.MOUSEBUTTONDOWN:

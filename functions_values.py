@@ -13,7 +13,7 @@ def get_vectors_sum(vektor1, vektor2):
 def get_vector_length(vektor):
     return math.sqrt(vektor[0]**2 + vektor[1]**2)
 def big_render(renders):
-    renders = sorted(renders, key=lambda obj: obj.pos[1]+obj.sprite.get_height())
+    renders = sorted(renders, key=lambda obj: obj.pos[1]+obj.image.get_height())
     for rend in renders:
         rend.render()
 def set_nearest_offscreen_pos(pos,objekt, ekraan):
@@ -22,13 +22,13 @@ def set_nearest_offscreen_pos(pos,objekt, ekraan):
     a = [x, y, ekraan_laius - x, ekraan_pikkus - y]
     match a.index(min(a)):
         case 0:
-            objekt.pos = (-objekt.sprite.get_width(), y - objekt.sprite.get_height())
+            objekt.pos = (-objekt.image.get_width(), y - objekt.image.get_height())
         case 1:
-            objekt.pos = (x, -objekt.sprite.get_height())
+            objekt.pos = (x, -objekt.image.get_height())
         case 2:
-            objekt.pos = (ekraan_laius + objekt.sprite.get_width(), y - objekt.sprite.get_height())
+            objekt.pos = (ekraan_laius + objekt.image.get_width(), y - objekt.image.get_height())
         case 3:
-            objekt.pos = (x, ekraan_pikkus + objekt.sprite.get_height())
+            objekt.pos = (x, ekraan_pikkus + objekt.image.get_height())
 
 
 
