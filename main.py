@@ -5,7 +5,7 @@ pygame.font.init()
 
 # Põhi sätted
 font = pygame.font.Font('GOTHIC.TTF', 40)  # valib fondi ja selle suuruse
-timer = pygame.time.Clock()
+clock = pygame.time.Clock()
 pygame.display.set_caption("Mäng")
 
 # Ekraan
@@ -80,11 +80,21 @@ class Character(Objekt):
             self.change_sprite(self.current_animation[int(self.current_sprite)])
 
 class Pintsel(Objekt):
-    def __init__(self, sprite, width):
+    def __init__(self, sprite, width,BRUSH_START_SIZE, BRUSH_START_ALPHA):
         super().__init__(x=0,y=0,sprite=sprite, width=width)
         self.brush_textures = []
         self.load_brush_textures()
-
+        self.brush_start = BRUSH_START_SIZE
+        self.alpha_start = BRUSH_START_ALPHA
+    def set_variables_to_defaults(self):
+        global to_render, strokes,ekraan_suurus
+        self.brush_size, self.alpha, self.last_pos = self.brush_start,self.alpha_start, None
+        self.speed = pygame.math.Vector2()
+        self.slow_speed = 4
+        to_render.remove(strokes)
+        strokes.empty()
+        fv.set_nearest_offscreen_pos(pygame.mouse.get_pos(), self, ekraan_suurus)
+        to_render.add(pintsel, layer=4)
     # Siin saaks tglt optimeerida veel paremini dictionaryga: brush_textures{brush_size: [preloaded brushes], brush_size:[preloaded brushes, jne]}
     # siis ta cahce-iks koik tehtud texturid tulevikuks ara, juhul kui brush size jalle tagasi muudetakse
     def load_brush_textures(self):
@@ -98,38 +108,34 @@ class Pintsel(Objekt):
         """ Return a random brush texture from the preloaded list """
         return random.choice(self.brush_textures)
 
-    def update(self):
-        global slow_speed
-        mouse_x = self.mouse_pos.x
-        mouse_y = self.mouse_pos.y -self.image.get_height() # selleks, et pintsli vasak alumine äär oleks kursori peal
-        speed_x = mouse_x - self.rect.x
-        speed_y = mouse_y - self.rect.y
-        if slow_speed > 1.2:
-            slow_speed -= 0.2
-            self.speed = pygame.math.Vector2(speed_x/slow_speed, speed_y/slow_speed)
-        else:
-            self.speed = pygame.math.Vector2(0,0)
-            self.rect = pygame.math.Vector2(mouse_x, mouse_y)
-        super().update()
-
     def joonista(self,MAX_BRUSH_SIZE,BRUSH_CHANGE_RATE,MAX_ALPHA,ALPHA_CHANGE_RATE):
+
         self.mouse_pos = pygame.mouse.get_pos()
-        self.mouse_pos = pygame.math.Vector2(self.mouse_pos[0],self.mouse_pos[1])
-        global last_pos, strokes, detection_positions, brush_size, alpha
+        self.mouse_pos = pygame.math.Vector2(self.mouse_pos[0],self.mouse_pos[1]-self.image.get_height())
+        speed = self.mouse_pos - self.rect
+        if self.slow_speed > 1.2:
+            self.slow_speed -= 0.2
+            self.speed = pygame.math.Vector2(speed/self.slow_speed)
+            super().update()
+        else:
+            self.speed = pygame.math.Vector2(0, 0)
+            self.rect = pygame.math.Vector2(self.mouse_pos)
+        global strokes, detection_positions
+        self.mouse_pos.y += self.image.get_height()
         detection_positions.append(self.mouse_pos)
-        if brush_size < MAX_BRUSH_SIZE:
-            brush_size += BRUSH_CHANGE_RATE
-        if alpha < MAX_ALPHA:
-            alpha += ALPHA_CHANGE_RATE
-        if last_pos:
-            vektor =  self.mouse_pos - last_pos
+        if self.brush_size < MAX_BRUSH_SIZE:
+            self.brush_size += BRUSH_CHANGE_RATE
+        if self.alpha < MAX_ALPHA:
+            self.alpha += ALPHA_CHANGE_RATE
+        if self.last_pos:
+            vektor =  self.mouse_pos - self.last_pos
             vektor_length = vektor.length()
-            spaces = max(1, int(vektor_length / brush_size * min(brush_size, 3)))
+            spaces = max(1, int(vektor_length / self.brush_size * min(self.brush_size, 3)))
             for space in range(spaces):
                 factor = space / spaces
-                new_pos = last_pos + vektor * factor
-                strokes.add(Värv(new_pos,alpha,brush_size))
-        last_pos = self.mouse_pos
+                new_pos = self.last_pos + vektor * factor
+                strokes.add(Värv(new_pos,self.alpha,self.brush_size))
+        self.last_pos = self.mouse_pos
 
 class Värv(pygame.sprite.Sprite):
     def __init__(self, pos,alpha, brush_size):
@@ -146,7 +152,7 @@ class Vastane(Character):
 taust = Objekt(sprite='background.png', width=ekraan_laius)
 mikro = Character(100,300,"mikro_left.png", width=100, base_speed=8)
 mikro.set_sprites('mikro_away.png','mikro_forward.png','mikro_left.png','mikro_right.png')
-pintsel = Pintsel("pencil.png", width=200)
+pintsel = Pintsel("pencil.png", width=200,BRUSH_START_SIZE=2,BRUSH_START_ALPHA=10)
 vastane = Vastane(500,300, width=100, base_speed=4)
 vastane.set_sprites(['man_away.png','man_away.pngf'],['man_forward.png','man_forward.pngf'],['man_side.png','man_side2.png'],['man_side.pngf','man_side2.pngf'], 'man_shoot.png')
 
@@ -155,20 +161,24 @@ joonistab = False
 to_render = pygame.sprite.LayeredUpdates()
 strokes = pygame.sprite.Group()
 detection_positions = []
-BRUSH_START_SIZE = 2
-BRUSH_START_ALPHA = 10
-
 to_render.add(taust,vastane,mikro)
-
 
 while True:
 
     time +=1
     if time == 100:
         vastane.change_speed(y=vastane.base_speed)
-
     elif time == 150:
         vastane.change_speed(y=-vastane.base_speed)
+    elif time == 200:
+        vastane.change_speed(x=-vastane.base_speed)
+    elif time == 250:
+        vastane.change_speed(x=vastane.base_speed)
+    elif time == 300:
+        vastane.change_speed(y=-vastane.base_speed)
+    elif time == 350:
+        vastane.change_speed(y=vastane.base_speed)
+
 
 
     if joonistab:
@@ -196,6 +206,7 @@ while True:
     vastane.play_animation()
     to_render.update()
     to_render.draw(aken)
+
 
     #iga kord kui on sündmus
     for event in pygame.event.get():
@@ -228,12 +239,8 @@ while True:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == pygame.BUTTON_LEFT:
                 joonistab = True
-                brush_size, alpha, last_pos = BRUSH_START_SIZE,BRUSH_START_ALPHA, None
-                slow_speed = 3.75
-                to_render.remove(strokes)
-                strokes.empty()
-                fv.set_nearest_offscreen_pos(pygame.mouse.get_pos(),pintsel,ekraan_suurus)
-                to_render.add(pintsel,layer=4)
+                pintsel.set_variables_to_defaults()
+
 
         #hiire nupp üles
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -244,4 +251,4 @@ while True:
 
     # Uuendame ekraani
     pygame.display.update()
-    timer.tick(FPS)
+    clock.tick(FPS)
