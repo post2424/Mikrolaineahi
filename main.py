@@ -1,5 +1,9 @@
 import pygame, sys, math, random
+
+
 import functions_values as fv
+
+
 pygame.init()
 pygame.font.init()
 
@@ -71,14 +75,17 @@ class Character(Objekt):
             self.change_sprite(self.current_animation)
         else:
             self.animating = True
-
     def play_animation(self):
         if self.animating:
             self.current_sprite += 1 / self.hold_frame
             if int(self.current_sprite) >= len(self.current_animation):
                 self.current_sprite = 0
             self.change_sprite(self.current_animation[int(self.current_sprite)])
-
+    def update(self):
+        global ekraan_suurus
+        self.rect = self.rect + self.speed
+        self.rect.x = pygame.math.clamp(self.rect.x,-self.image.get_width()/2, ekraan_suurus[0]-self.image.get_width()/2)
+        self.rect.y = pygame.math.clamp(self.rect.y,175, ekraan_suurus[1]-self.image.get_height()/2)
 class Pintsel(Objekt):
     def __init__(self, sprite, width,BRUSH_START_SIZE, BRUSH_START_ALPHA):
         super().__init__(x=0,y=0,sprite=sprite, width=width)
