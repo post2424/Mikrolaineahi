@@ -6,12 +6,7 @@ down = [pygame.K_DOWN, pygame.K_s]
 left = [pygame.K_LEFT, pygame.K_a]
 right = [pygame.K_RIGHT,pygame.K_d]
 
-def get_vector(point1,point2):
-    return [i - j for i, j in zip(point1, point2)]
-def get_vectors_sum(vektor1, vektor2):
-    return [i + j for i, j in zip(vektor1, vektor2)]
-def get_vector_length(vektor):
-    return math.sqrt(vektor[0]**2 + vektor[1]**2)
+
 def set_nearest_offscreen_pos(pos,objekt, ekraan):
     ekraan_laius, ekraan_pikkus = ekraan[0], ekraan[1]
     x,y = pos[0], pos[1]
@@ -63,9 +58,9 @@ def is_line(positions):
         case _:
             first_pos = positions[0]
             last_pos = positions[-1]
-            kogu_muut = get_vector(last_pos,first_pos)
+            kogu_muut =  last_pos - first_pos
             for pos in positions[1:-2]:
-                vektori_pikkus = get_vector_length(kogu_muut)
+                vektori_pikkus = kogu_muut.length()
                 if vektori_pikkus > 100 and vektori_pikkus != 0:
                     nimetaja = abs(kogu_muut[1] * pos[0] - kogu_muut[0] * pos[1] + last_pos[0] * first_pos[1] - last_pos[1] *first_pos[0])
                     kaugus_sirgest = nimetaja/vektori_pikkus
@@ -73,5 +68,5 @@ def is_line(positions):
                         return False
                 else:
                     return False
-            return True
 
+            return True

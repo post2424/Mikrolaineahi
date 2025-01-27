@@ -19,15 +19,15 @@ time = 0
 must = (0, 0, 0)
 canvas = pygame.Surface(ekraan_suurus, pygame.SRCALPHA)
 class Objekt(pygame.sprite.Sprite):
-    def __init__(self, sprite = None, pos = None, width = None, base_speed = None):
+    def __init__(self,x=0,y=0, sprite = None, width = None, base_speed = None):
         super().__init__()
-        self.speed = [0,0]
-        self.rect = pos or [0, 0]
+        self.speed = pygame.math.Vector2()
+        self.rect = pygame.math.Vector2(x,y)
         self.width = width
         self.change_sprite(sprite)
-        self.base_speed = base_speed or [0,0]
+        self.base_speed = base_speed or 0
     def update(self):
-        self.rect = fv.get_vectors_sum(self.rect, self.speed)
+        self.rect = self.rect + self.speed
 
     def change_sprite(self, sprite = None):
         self.image = sprite or "placeholder.png"
@@ -44,33 +44,33 @@ class Objekt(pygame.sprite.Sprite):
 
 # kui spritei nime lõpus on f siis ta flippib spritei
 class Character(Objekt):
-    def set_sprites(self,up_sprites, down_sprites, left_sprites, right_sprites,frames_per_sprite=None,still_sprites=None):
+    def set_sprites(self,up_sprites, down_sprites, left_sprites, right_sprites,still_sprites=None,hold_frame=None):
         self.up_sprites = up_sprites
         self.down_sprites = down_sprites
         self.left_sprites = left_sprites
         self.right_sprites = right_sprites
-        self.frames_per_sprite = frames_per_sprite
         self.still_sprites = still_sprites
         self.current_animation = self.still_sprites
         self.current_sprite = 0
-        self.hold_frame = 11.5
+        self.hold_frame = hold_frame or 11.5
         self.change_speed(0,0)
     def change_speed(self,x=0,y=0):
-        self.speed = fv.get_vectors_sum(self.speed,(x,y))
-        if self.speed[0] < 0: #vasakule
+        self.speed = self.speed + (x,y)
+        if self.speed.x < 0:  # vasakule
             self.current_animation = self.left_sprites
-        elif self.speed[0] > 0:  # paremale
+        elif self.speed.x > 0:  # paremale
             self.current_animation = self.right_sprites
-        elif self.speed[1]  < 0:#üles
+        elif self.speed.y < 0:  # üles
             self.current_animation = self.up_sprites
-        elif self.speed[1] > 0:  # alla
+        elif self.speed.y > 0:  # alla
             self.current_animation = self.down_sprites
-        elif self.still_sprites: #paigal
+        elif self.still_sprites:  # paigal
             self.current_animation = self.still_sprites
         if isinstance(self.current_animation, str):
-             self.animating = False
-             self.change_sprite(self.current_animation)
-        else: self.animating = True
+            self.animating = False
+            self.change_sprite(self.current_animation)
+        else:
+            self.animating = True
 
     def play_animation(self):
         if self.animating:
@@ -81,7 +81,7 @@ class Character(Objekt):
 
 class Pintsel(Objekt):
     def __init__(self, sprite, width):
-        super().__init__(sprite, pos=[0, 0], width=width)
+        super().__init__(x=0,y=0,sprite=sprite, width=width)
         self.brush_textures = []
         self.load_brush_textures()
 
@@ -100,20 +100,21 @@ class Pintsel(Objekt):
 
     def update(self):
         global slow_speed
-        mouse_x = self.mouse_pos[0]
-        mouse_y = self.mouse_pos[1] -self.image.get_height() # selleks, et pintsli vasak alumine äär oleks kursori peal
-        speed_x = mouse_x - self.rect[0]
-        speed_y = mouse_y - self.rect[1]
+        mouse_x = self.mouse_pos.x
+        mouse_y = self.mouse_pos.y -self.image.get_height() # selleks, et pintsli vasak alumine äär oleks kursori peal
+        speed_x = mouse_x - self.rect.x
+        speed_y = mouse_y - self.rect.y
         if slow_speed > 1.2:
             slow_speed -= 0.2
-            self.speed = (speed_x/slow_speed, speed_y/slow_speed)
+            self.speed = pygame.math.Vector2(speed_x/slow_speed, speed_y/slow_speed)
         else:
-            self.speed = [0,0]
-            self.rect = (mouse_x, mouse_y)
+            self.speed = pygame.math.Vector2(0,0)
+            self.rect = pygame.math.Vector2(mouse_x, mouse_y)
         super().update()
 
     def joonista(self,MAX_BRUSH_SIZE,BRUSH_CHANGE_RATE,MAX_ALPHA,ALPHA_CHANGE_RATE):
         self.mouse_pos = pygame.mouse.get_pos()
+        self.mouse_pos = pygame.math.Vector2(self.mouse_pos[0],self.mouse_pos[1])
         global last_pos, strokes, detection_positions, brush_size, alpha
         detection_positions.append(self.mouse_pos)
         if brush_size < MAX_BRUSH_SIZE:
@@ -121,12 +122,12 @@ class Pintsel(Objekt):
         if alpha < MAX_ALPHA:
             alpha += ALPHA_CHANGE_RATE
         if last_pos:
-            vektor = fv.get_vector(self.mouse_pos, last_pos)
-            vektor_length = fv.get_vector_length(vektor)
+            vektor =  self.mouse_pos - last_pos
+            vektor_length = vektor.length()
             spaces = max(1, int(vektor_length / brush_size * min(brush_size, 3)))
             for space in range(spaces):
                 factor = space / spaces
-                new_pos = [lp + v * factor for lp, v in zip(last_pos, vektor)]
+                new_pos = last_pos + vektor * factor
                 strokes.add(Värv(new_pos,alpha,brush_size))
         last_pos = self.mouse_pos
 
@@ -142,12 +143,12 @@ class Värv(pygame.sprite.Sprite):
 
 class Vastane(Character):
     pass
-taust = Objekt('background.png', width=ekraan_laius)
-mikro = Character("mikro_left.png", [100,300], width=100, base_speed=8)
+taust = Objekt(sprite='background.png', width=ekraan_laius)
+mikro = Character(100,300,"mikro_left.png", width=100, base_speed=8)
 mikro.set_sprites('mikro_away.png','mikro_forward.png','mikro_left.png','mikro_right.png')
 pintsel = Pintsel("pencil.png", width=200)
-vastane = Vastane(pos=[500,300], width=100, base_speed=4)
-vastane.set_sprites(['man_away.png','man_away.pngf'],['man_forward.png','man_forward.pngf'],['man_side.png','man_side2.png'],['man_side.pngf','man_side2.pngf'],10, 'man_shoot.png')
+vastane = Vastane(500,300, width=100, base_speed=4)
+vastane.set_sprites(['man_away.png','man_away.pngf'],['man_forward.png','man_forward.pngf'],['man_side.png','man_side2.png'],['man_side.pngf','man_side2.pngf'], 'man_shoot.png')
 
 
 joonistab = False
@@ -179,12 +180,12 @@ while True:
         to_render.remove(*b)
         if detection_positions:
             if fv.is_line(detection_positions):
-                center = fv.get_vectors_sum(detection_positions[0],detection_positions[-1])
-                center = (center[0]/2,center[1]/2)
-                to_render.add(Objekt(pos=center))
+                center = detection_positions[0] + detection_positions[-1]
+
+                to_render.add(Objekt(center.x/2,center.y/2))
             detection_positions.clear()
 
-    if vastane.rect[1]+vastane.image.get_height() > mikro.rect[1]+mikro.image.get_height():
+    if vastane.rect.y+vastane.image.get_height() > mikro.rect.y+mikro.image.get_height():
         to_render.change_layer(vastane,2)
         to_render.change_layer(mikro, 1)
     else:
@@ -229,6 +230,7 @@ while True:
                 joonistab = True
                 brush_size, alpha, last_pos = BRUSH_START_SIZE,BRUSH_START_ALPHA, None
                 slow_speed = 3.75
+                to_render.remove(strokes)
                 strokes.empty()
                 fv.set_nearest_offscreen_pos(pygame.mouse.get_pos(),pintsel,ekraan_suurus)
                 to_render.add(pintsel,layer=4)
