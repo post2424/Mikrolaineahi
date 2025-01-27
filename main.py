@@ -157,27 +157,26 @@ detection_positions = []
 BRUSH_START_SIZE = 2
 BRUSH_START_ALPHA = 10
 
-to_render.add(taust)
-to_render.add(vastane)
-to_render.add(mikro)
+to_render.add(taust,vastane,mikro)
+
 
 while True:
 
     time +=1
     if time == 100:
         vastane.change_speed(y=vastane.base_speed)
+
     elif time == 150:
         vastane.change_speed(y=-vastane.base_speed)
 
 
     if joonistab:
-        to_render.add(pintsel)
         pintsel.joonista(10,0.75,200,7)
     else:
-        to_render.remove(pintsel)
         a = max(1,math.floor(len(strokes)/7))
-        sprites_to_remove = list(strokes)[0:a]
-        strokes.remove(*sprites_to_remove)
+        b = list(strokes)[:a]
+        strokes.remove(*b)
+        to_render.remove(*b)
         if detection_positions:
             if fv.is_line(detection_positions):
                 center = fv.get_vectors_sum(detection_positions[0],detection_positions[-1])
@@ -185,10 +184,17 @@ while True:
                 to_render.add(Objekt(pos=center))
             detection_positions.clear()
 
+    if vastane.rect[1]+vastane.image.get_height() > mikro.rect[1]+mikro.image.get_height():
+        to_render.change_layer(vastane,2)
+        to_render.change_layer(mikro, 1)
+    else:
+        to_render.change_layer(vastane, 1)
+        to_render.change_layer(mikro, 2)
+
+    to_render.add(strokes, layer=3)
     vastane.play_animation()
     to_render.update()
     to_render.draw(aken)
-    strokes.draw(aken)
 
     #iga kord kui on sündmus
     for event in pygame.event.get():
@@ -225,11 +231,13 @@ while True:
                 slow_speed = 3.75
                 strokes.empty()
                 fv.set_nearest_offscreen_pos(pygame.mouse.get_pos(),pintsel,ekraan_suurus)
+                to_render.add(pintsel,layer=4)
 
         #hiire nupp üles
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == pygame.BUTTON_LEFT:
                 joonistab = False
+                to_render.remove(pintsel)
 
 
     # Uuendame ekraani

@@ -12,10 +12,6 @@ def get_vectors_sum(vektor1, vektor2):
     return [i + j for i, j in zip(vektor1, vektor2)]
 def get_vector_length(vektor):
     return math.sqrt(vektor[0]**2 + vektor[1]**2)
-def big_render(renders):
-    renders = sorted(renders, key=lambda obj: obj.pos[1]+obj.image.get_height())
-    for rend in renders:
-        rend.render()
 def set_nearest_offscreen_pos(pos,objekt, ekraan):
     ekraan_laius, ekraan_pikkus = ekraan[0], ekraan[1]
     x,y = pos[0], pos[1]
