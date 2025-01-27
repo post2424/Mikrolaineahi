@@ -65,9 +65,9 @@ def is_line(positions):
             first_pos = positions[0]
             last_pos = positions[-1]
             kogu_muut =  last_pos - first_pos
+            vektori_pikkus = kogu_muut.length()
             for pos in positions[1:-2]:
-                vektori_pikkus = kogu_muut.length()
-                if vektori_pikkus > 100 and vektori_pikkus != 0:
+                if vektori_pikkus > 100:
                     nimetaja = abs(kogu_muut[1] * pos[0] - kogu_muut[0] * pos[1] + last_pos[0] * first_pos[1] - last_pos[1] *first_pos[0])
                     kaugus_sirgest = nimetaja/vektori_pikkus
                     if kaugus_sirgest > 30:

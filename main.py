@@ -23,9 +23,10 @@ time = 0
 must = (0, 0, 0)
 canvas = pygame.Surface(ekraan_suurus, pygame.SRCALPHA)
 class Objekt(pygame.sprite.Sprite):
-    def __init__(self,x=0,y=0, sprite = None, width = None, base_speed = None):
+    def __init__(self,x=0,y=0,speed = None, sprite = None, width = None, base_speed = None):
         super().__init__()
-        self.speed = pygame.math.Vector2()
+        speed = speed or (0,0)
+        self.speed = pygame.math.Vector2(speed)
         self.rect = pygame.math.Vector2(x,y)
         self.width = width
         self.change_sprite(sprite)
@@ -57,8 +58,20 @@ class Character(Objekt):
         self.current_animation = self.still_sprites
         self.current_sprite = 0
         self.hold_frame = hold_frame or 11.5
-        self.change_speed(0,0)
-    def change_speed(self,x=0,y=0):
+        self.change_speed()
+    def change_speed(self,direction=None):
+        x, y = 0, 0
+        match direction:
+            case 'up':
+                y = -self.base_speed
+            case 'down':
+                y = self.base_speed
+            case 'left':
+                x = -self.base_speed
+            case 'right':
+                x = self.base_speed
+            case _:
+                x,y = -self.speed[0], -self.speed[1]
         self.speed = self.speed + (x,y)
         if self.speed.x < 0:  # vasakule
             self.current_animation = self.left_sprites
@@ -116,7 +129,6 @@ class Pintsel(Objekt):
         return random.choice(self.brush_textures)
 
     def joonista(self,MAX_BRUSH_SIZE,BRUSH_CHANGE_RATE,MAX_ALPHA,ALPHA_CHANGE_RATE):
-
         self.mouse_pos = pygame.mouse.get_pos()
         self.mouse_pos = pygame.math.Vector2(self.mouse_pos[0],self.mouse_pos[1]-self.image.get_height())
         speed = self.mouse_pos - self.rect
@@ -155,9 +167,10 @@ class Värv(pygame.sprite.Sprite):
         self.image.set_alpha(self.alpha)
 
 class Vastane(Character):
-    pass
+    def cut_in_half(self,cut_vektor):
+        pass
 taust = Objekt(sprite='background.png', width=ekraan_laius)
-mikro = Character(100,300,"mikro_left.png", width=100, base_speed=8)
+mikro = Character(100,300,sprite = "mikro_right.png", width=100, base_speed=8)
 mikro.set_sprites('mikro_away.png','mikro_forward.png','mikro_left.png','mikro_right.png')
 pintsel = Pintsel("pencil.png", width=200,BRUSH_START_SIZE=2,BRUSH_START_ALPHA=10)
 vastane = Vastane(500,300, width=100, base_speed=4)
@@ -174,17 +187,21 @@ while True:
 
     time +=1
     if time == 100:
-        vastane.change_speed(y=vastane.base_speed)
+        vastane.change_speed("down")
     elif time == 150:
-        vastane.change_speed(y=-vastane.base_speed)
+        vastane.change_speed()
     elif time == 200:
-        vastane.change_speed(x=-vastane.base_speed)
+        vastane.change_speed("left")
     elif time == 250:
-        vastane.change_speed(x=vastane.base_speed)
+        vastane.change_speed()
     elif time == 300:
-        vastane.change_speed(y=-vastane.base_speed)
+        vastane.change_speed("up")
     elif time == 350:
-        vastane.change_speed(y=vastane.base_speed)
+        vastane.change_speed()
+    elif time == 400:
+        vastane.change_speed("right")
+    elif time == 500:
+        vastane.change_speed()
 
 
 
@@ -198,7 +215,6 @@ while True:
         if detection_positions:
             if fv.is_line(detection_positions):
                 center = detection_positions[0] + detection_positions[-1]
-
                 to_render.add(Objekt(center.x/2,center.y/2))
             detection_positions.clear()
 
@@ -224,23 +240,23 @@ while True:
         #klaviatuuri nupp alla
         elif event.type == pygame.KEYDOWN:
             if event.key in fv.up:
-                mikro.change_speed(y=-mikro.base_speed)
+                mikro.change_speed("up")
             if event.key in fv.down:
-                mikro.change_speed(y=mikro.base_speed)
+                mikro.change_speed("down")
             if event.key in fv.left:
-                mikro.change_speed(-mikro.base_speed)
+                mikro.change_speed("left")
             if event.key in fv.right:
-                mikro.change_speed(mikro.base_speed)
+                mikro.change_speed("right")
         #klaviatuuri nupp üles
         elif event.type == pygame.KEYUP:
             if event.key in fv.up:
-                mikro.change_speed(y=mikro.base_speed)
+                mikro.change_speed("down")
             if event.key in fv.down:
-                mikro.change_speed(y=-mikro.base_speed)
+                mikro.change_speed("up")
             if event.key in fv.left:
-                mikro.change_speed(mikro.base_speed)
+                mikro.change_speed("right")
             if event.key in fv.right:
-                mikro.change_speed(-mikro.base_speed)
+                mikro.change_speed("left")
 
         #hiire nupp alla
         elif event.type == pygame.MOUSEBUTTONDOWN:
