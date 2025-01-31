@@ -10,8 +10,8 @@ right = [pygame.K_RIGHT,pygame.K_d]
 def set_nearest_offscreen_pos(pos,objekt, ekraan):
     ekraan_laius, ekraan_pikkus = ekraan[0], ekraan[1]
     x,y = pos[0], pos[1]
-    objekti_laius = objekt.image.get_width()
-    objekti_pikkus = objekt.image.get_height()
+    objekti_laius = objekt.width
+    objekti_pikkus = objekt.height
 
     a = [x+objekti_laius, y, ekraan_laius - x, ekraan_pikkus - y +objekti_pikkus]
     match a.index(min(a)):
@@ -25,7 +25,7 @@ def set_nearest_offscreen_pos(pos,objekt, ekraan):
             y = y - objekti_pikkus
         case 3:
             y = ekraan_pikkus + objekti_pikkus
-    objekt.rect = pygame.math.Vector2(x,y)
+    objekt.pos = pygame.math.Vector2(x,y)
 
 
 
