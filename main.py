@@ -26,7 +26,6 @@ class Objekt(pygame.sprite.Sprite):
     def __init__(self,x=0,y=0,speed = None, sprite = None, width = None, base_speed = None):
         super().__init__()
         speed = speed or (0,0)
-
         self.speed = pygame.math.Vector2(speed)
         self.pos = pygame.math.Vector2(x,y)
         self.width = width
@@ -45,11 +44,14 @@ class Objekt(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(self.image, True, False)
         else:
             self.image = pygame.image.load("Sprites/" + self.image)
+        self.height = self.image.get_height()
 
         if self.width is not None:
-            heightdivwidth = (self.image.get_height() / self.image.get_width())
+            heightdivwidth = (self.height / self.image.get_width())
             self.height = round(heightdivwidth * self.width)
             self.image = pygame.transform.scale(self.image, (self.width,self.height))
+        else:
+            self.width = self.image.get_width()
 
 
 # kui spritei nime lõpus on f siis ta flippib spritei
@@ -106,7 +108,7 @@ class Character(Objekt):
             self.change_sprite(self.current_animation[int(self.current_sprite)])
     def update(self):
         global ekraan_suurus
-        self.rect = pygame.Rect(0, 0, self.width, self.height)
+        self.rect = pygame.Rect(0, 0, self.width,self.image.get_height())
         self.pos = self.pos + self.speed
         self.pos.x = pygame.math.clamp(self.pos.x,0, ekraan_suurus[0])
         self.pos.y = pygame.math.clamp(self.pos.y,100 + self.rect.h, ekraan_suurus[1])
@@ -229,6 +231,10 @@ while True:
         vastane.change_speed("right")
     elif time == 500:
         vastane.change_speed()
+    #elif time == 600:
+    #    vastane.change_speed("up")
+    #elif time == 700:
+    #    vastane.change_speed()
 
 
 
@@ -240,7 +246,8 @@ while True:
         if pintsel.detection_positions:
             if fv.is_line(pintsel.detection_positions):
                 center = pintsel.detection_positions[0] + pintsel.detection_positions[-1]
-                to_render.add(pintsel.get_line_collide_rect())
+                center /= 2
+                to_render.add(Objekt(center[0], center[1]))
             pintsel.detection_positions.clear()
     if vastane.rect.bottom > mikro.rect.bottom:
         to_render.change_layer(vastane,2)
